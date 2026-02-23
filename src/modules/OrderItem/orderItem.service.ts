@@ -15,19 +15,36 @@ export type UpdateOrderItemDTO = {
   name?: string;
 };
 
-// --- Service --- //
+
+
+// --- Enhanced Service --- //
 const createOrderItem = async (payload: CreateOrderItemDTO) => {
-  // 1️⃣ Validate related foreign keys
-  const meal = await prisma.meal.findUnique({ where: { id: payload.mealId } });
+  const { orderId, mealId, quantity } = payload;
+
+  // 1️⃣ Validate the meal exists
+  const meal = await prisma.meal.findUnique({ where: { id: mealId } });
   if (!meal) throw new Error("Meal not found");
 
-  const order = await prisma.order.findUnique({ where: { id: payload.orderId } });
+  // 2️⃣ Validate the order exists
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) throw new Error("Order not found");
 
-  // 2️⃣ Create OrderItem
-  return await prisma.orderItem.create({
-    data: { ...payload },
-  });
+  // 3️⃣ Prevent mismatched provider (optional, but good practice)
+  if (meal.providerId !== order.providerId) {
+    throw new Error("Meal does not belong to the same provider as the order");
+  }
+
+  // 4️⃣ Prepare the order item data with snapshot (price & name)
+  const orderItemData = {
+    orderId,
+    mealId,
+    quantity,
+    price: meal.price, // snapshot price at time of order
+    name: meal.name,   // snapshot name at time of order
+  };
+
+  // 5️⃣ Create the order item
+  return await prisma.orderItem.create({ data: orderItemData });
 };
 
 // --- Optional: create multiple order items in transaction ---
@@ -80,4 +97,4 @@ export const OrderItemService = {
   getSingleOrderItem,
   updateOrderItem,
   deleteOrderItem,
-};
+}; 

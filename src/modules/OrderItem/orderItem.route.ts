@@ -5,7 +5,7 @@ import { OrderItemController } from "./orderItem.controller";
 
 const router = express.Router();
 
-// Admin only
+
 router.post("/", auth(UserRole.PROVIDER), OrderItemController.createOrderItem);
 router.get("/", auth(UserRole.PROVIDER), OrderItemController.getOrderItems);
 router.get(
@@ -25,3 +25,4 @@ router.delete(
 );
 
 export const OrderItemRoutes = router;
+ 
