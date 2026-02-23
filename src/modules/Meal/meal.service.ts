@@ -2,8 +2,7 @@ import { includes } from "zod";
 import { prisma } from "../../lib/prisma";
 
 const createMeal = async (payload: any, userId: string) => {
-  // console.log({ payload, userId });
-
+ 
   const provider = await prisma.providerProfile.findUnique({
     where: {
       userId: userId,
@@ -28,6 +27,9 @@ const getMeals = async (userId: string) => {
     prisma.meal.findMany({
       where,
       orderBy: { createdAt: "desc" },
+      include: {
+        reviews: true,
+      },
     }),
   ]);
 

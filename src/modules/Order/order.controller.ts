@@ -67,10 +67,7 @@ const getOrder: RequestHandler = async (req, res) => {
 // Update order status (PROVIDER role)
 const updateStatus: RequestHandler = async (req, res) => {
   try {
-    const order = await OrderService.updateOrderStatus(
-      req.params.id as string,
-      req.body.status
-    );
+    const order = await OrderService.updateOrderStatus(req.params.id as string, req.body.status);
     sendResponse(res, {
       statusCode: 200,
       success: true,
@@ -92,4 +89,4 @@ export const OrderController = {
   getOrders,
   getOrder,
   updateStatus,
-};
+}; 

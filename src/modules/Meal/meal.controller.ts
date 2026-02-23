@@ -4,8 +4,6 @@ import { MealService } from "./meal.service";
 
 const createMeal: RequestHandler = async (req: Request, res: Response) => {
   try {
-    // console.log(req?.user);
-
     const result = await MealService.createMeal(req.body, req.user?.id);
     sendResponse(res, {
       statusCode: 201,

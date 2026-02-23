@@ -105,4 +105,4 @@ export const OrderService = {
   getOrdersByCustomer,
   getOrderById,
   updateOrderStatus,
-};
+}; 
