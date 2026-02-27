@@ -10,13 +10,13 @@ router.post(
   auth(UserRole.PROVIDER),
   ProviderController.createProviderProfile
 );
-
+router.get("/", ProviderController.getAllProviders);
 router.get(
   "/me",
   auth(UserRole.PROVIDER),
   ProviderController.getMyProviderProfile
 );
 
-router.get("/:id", ProviderController.getSingleProviderProfile);
+router.get("/:id", ProviderController.getSingleProvider);
 
 export const ProviderRoutes = router;

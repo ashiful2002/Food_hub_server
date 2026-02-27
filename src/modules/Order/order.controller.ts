@@ -1,9 +1,9 @@
-import { RequestHandler } from "express";
+import { NextFunction, RequestHandler } from "express";
 import sendResponse from "../../utils/sendResponse";
 import { OrderService } from "./order.service";
 
 // Create Order
-const createOrder: RequestHandler = async (req, res) => {
+const createOrder: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     const payload = { ...req.body, customerId: req.user?.id };
     const order = await OrderService.createOrder(payload);
@@ -15,19 +15,17 @@ const createOrder: RequestHandler = async (req, res) => {
       data: order,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Order creation failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
-
 // Get all orders for logged-in customer
-const getOrders: RequestHandler = async (req, res) => {
+const getOrders: RequestHandler = async (req, res, next: NextFunction) => {
   try {
-    const orders = await OrderService.getOrdersByCustomer(req.user?.id!);
+    const userId = req.user?.id;
+    if (!userId) throw new Error("User not authenticated");
+
+    const orders = await OrderService.getOrders(userId);
+
     sendResponse(res, {
       statusCode: 200,
       success: true,
@@ -35,19 +33,18 @@ const getOrders: RequestHandler = async (req, res) => {
       data: orders,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Fetching orders failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
 // Get single order
-const getOrder: RequestHandler = async (req, res) => {
+const getOrderById: RequestHandler = async (req, res, next: NextFunction) => {
   try {
-    const order = await OrderService.getOrderById(req.params.id as string);
+    const order = await OrderService.getOrderById(
+      req.params.id as string,
+      req.user!.id,
+      req.user!.role
+    );
     sendResponse(res, {
       statusCode: 200,
       success: true,
@@ -55,38 +52,32 @@ const getOrder: RequestHandler = async (req, res) => {
       data: order,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 404,
-      success: false,
-      message: "Order not found",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
 // Update order status (PROVIDER role)
-const updateStatus: RequestHandler = async (req, res) => {
+const updateStatus: RequestHandler = async (req, res, next) => {
   try {
-    const order = await OrderService.updateOrderStatus(req.params.id as string, req.body.status);
+    const order = await OrderService.updateOrderStatus(
+      req.params.id as string,
+      req.body.status
+    );
+
     sendResponse(res, {
       statusCode: 200,
       success: true,
       message: "Order status updated successfully",
       data: order,
     });
-  } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Order status update failed",
-      data: error.message,
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
 export const OrderController = {
   createOrder,
   getOrders,
-  getOrder,
+  getOrderById,
   updateStatus,
-}; 
+};

@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../../lib/prisma";
 import bcrypt from "bcryptjs";
 import config from "../../config";
+import { UserRole, UserStatus } from "@prisma/client";
 
 const createUserIntoDB = async (payload: any) => {
   const password = payload.password;
@@ -23,6 +24,9 @@ const loginUser = async (payload: any) => {
 
   if (!user) {
     throw new Error("user not found");
+  }
+  if (user.status !== UserStatus.ACTIVE) {
+    throw new Error("User is suspended");
   }
   const isPasswordMatched = await bcrypt.compare(
     payload.password,
@@ -48,7 +52,47 @@ const loginUser = async (payload: any) => {
   };
 };
 
+const getMe = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  return {
+    user,
+  };
+};
+
+const updateProfile = async (userId: string, payload: any) => {
+  const allowedFields = [
+    "name",
+    "phone",
+    "avatar",
+    "street",
+    "city",
+    "postalCode",
+    "address",
+  ];
+
+  const data: any = {};
+  allowedFields.forEach((field) => {
+    if (payload[field] !== undefined) {
+      data[field] = payload[field];
+    }
+  });
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data,
+  });
+
+  return { user: updatedUser };
+};
+
 export const AuthService = {
   createUserIntoDB,
   loginUser,
+  getMe,
+  updateProfile,
 };

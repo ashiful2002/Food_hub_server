@@ -1,8 +1,8 @@
-import { RequestHandler } from "express";
+import { NextFunction, RequestHandler } from "express";
 import sendResponse from "../../utils/sendResponse";
 import { CategoryService } from "./categories.service";
 
-const createCategory: RequestHandler = async (req, res) => {
+const createCategory: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     const result = await CategoryService.createCategory(req.body);
 
@@ -13,16 +13,11 @@ const createCategory: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Category creation failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
-const getCategories: RequestHandler = async (req, res) => {
+const getCategories: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     const result = await CategoryService.getCategories();
 
@@ -33,16 +28,15 @@ const getCategories: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Fetching categories failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
-const getSingleCategory: RequestHandler = async (req, res) => {
+const getSingleCategory: RequestHandler = async (
+  req,
+  res,
+  next: NextFunction
+) => {
   try {
     const result = await CategoryService.getSingleCategory(
       req.params.id as string
@@ -55,16 +49,11 @@ const getSingleCategory: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 404,
-      success: false,
-      message: "Category not found",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
-const updateCategory: RequestHandler = async (req, res) => {
+const updateCategory: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     const result = await CategoryService.updateCategory(
       req.params.id as string,
@@ -78,16 +67,11 @@ const updateCategory: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Category update failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
-const deleteCategory: RequestHandler = async (req, res) => {
+const deleteCategory: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     await CategoryService.deleteCategory(req.params.id as string);
 
@@ -98,12 +82,7 @@ const deleteCategory: RequestHandler = async (req, res) => {
       data: null,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Category deletion failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 

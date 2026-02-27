@@ -1,7 +1,8 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
 }
+
 datasource db {
   provider = "postgresql"
 }
@@ -32,15 +33,20 @@ enum DietaryType {
 }
 
 model User {
-  id       String     @id @default(uuid())
-  name     String
-  email    String     @unique
-  password String
-  role     UserRole
-  status   UserStatus @default(ACTIVE)
-  phone    String?
-  avatar   String?
+  id              String           @id @default(uuid())
+  name            String
+  email           String           @unique
+  password        String
+  role            UserRole         @default(CUSTOMER)
+  status          UserStatus       @default(ACTIVE)
+  phone           String?
+  avatar          String?
 
+  address         String?
+  postalCode      String?
+  city            String?
+  street          String?
+  
   providerProfile ProviderProfile?
   orders          Order[]
   reviews         Review[]
@@ -95,6 +101,7 @@ model Meal {
   provider ProviderProfile @relation(fields: [providerId], references: [id])
   category Category        @relation(fields: [categoryId], references: [id])
 
+  views      Int           @default(0)
   dietary    DietaryType[]
   reviews    Review[]
   orderItems OrderItem[]

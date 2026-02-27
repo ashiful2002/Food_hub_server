@@ -1,15 +1,22 @@
-import { Request, RequestHandler, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import sendResponse from "../../utils/sendResponse";
 import { providerService } from "./provider.service";
-const createProviderProfile: RequestHandler = async (req, res) => {
+const createProviderProfile: RequestHandler = async (
+  req,
+  res,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
+
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
 
     const result = await providerService.createProviderProfile(
       req.body,
       userId
     );
-
     sendResponse(res, {
       statusCode: 201,
       success: true,
@@ -17,15 +24,27 @@ const createProviderProfile: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: error.message,
-      data: null,
-    });
+    next(error);
   }
 };
+const getAllProviders: RequestHandler = async (
+  req,
+  res,
+  next: NextFunction
+) => {
+  try {
+    const result = await providerService.getAllProviders(req.query);
 
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "All providers fetched successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
 const getMyProviderProfile: RequestHandler = async (req, res) => {
   try {
     const userId = req.user!.id;
@@ -35,7 +54,7 @@ const getMyProviderProfile: RequestHandler = async (req, res) => {
     sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "Provider profile fetched successfully",
+      message: "get all Providers successfully",
       data: result,
     });
   } catch (error: any) {
@@ -48,11 +67,16 @@ const getMyProviderProfile: RequestHandler = async (req, res) => {
   }
 };
 
-const getSingleProviderProfile: RequestHandler = async (req, res) => {
+const getSingleProvider: RequestHandler = async (
+  req,
+  res,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+  console.log(id);
+
   try {
-    const result = await providerService.getSingleProviderProfile(
-      req.params.id as string
-    );
+    const result = await providerService.getSingleProvider(id as string);
 
     sendResponse(res, {
       statusCode: 200,
@@ -61,17 +85,14 @@ const getSingleProviderProfile: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 404,
-      success: false,
-      message: error.message,
-      data: null,
-    });
+    next(error);
   }
 };
 
 export const ProviderController = {
   createProviderProfile,
+  getAllProviders,
   getMyProviderProfile,
-  getSingleProviderProfile,
+  getSingleProvider,
 };
+ 

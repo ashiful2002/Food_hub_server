@@ -1,10 +1,6 @@
-import { includes } from "zod";
 import { prisma } from "../../lib/prisma";
 
 const createMeal = async (payload: any, userId: string) => {
- 
-  // console.log(payload);
-  
   const provider = await prisma.providerProfile.findUnique({
     where: {
       userId: userId,
@@ -19,17 +15,7 @@ const createMeal = async (payload: any, userId: string) => {
   return result;
 };
 // get all meals
-const getMeals = async (
-  userId: string,
-  filters: {
-    name?: string;
-    categoryId?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    page?: string;
-    limit?: string;
-  }
-) => {
+const getMeals = async (userId: string, filters: any) => {
   const {
     name,
     categoryId,
@@ -38,13 +24,21 @@ const getMeals = async (
     page = "1",
     limit = "10",
   } = filters;
-  // ✅ Convert to numbers
+
   const pageNumber = Number(page);
   const limitNumber = Number(limit);
   const skip = (pageNumber - 1) * limitNumber;
 
+  const provider = await prisma.providerProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!provider) {
+    throw new Error("Provider not found");
+  }
+
   const where: any = {
-    provider: { userId },
+    providerId: provider.id,
   };
 
   if (name) {
@@ -57,27 +51,155 @@ const getMeals = async (
   if (categoryId) {
     where.categoryId = categoryId;
   }
+
   if (minPrice || maxPrice) {
     where.price = {};
     if (minPrice) where.price.gte = Number(minPrice);
     if (maxPrice) where.price.lte = Number(maxPrice);
   }
 
-  // ✅ Transaction for total + paginated data
-  const [total, data] = await prisma.$transaction([
-    prisma.meal.count({ where }),
-    prisma.meal.findMany({
-      where,
-      skip,
-      take: limitNumber,
-      orderBy: { createdAt: "desc" },
-      include: {
-        reviews: true,
-      },
-    }),
-  ]);
+  const total = await prisma.meal.count({ where });
 
-  // return data;
+  const data = await prisma.meal.findMany({
+    where,
+    skip,
+    take: limitNumber,
+    orderBy: { createdAt: "desc" },
+    include: {
+      reviews: true,
+      provider: true,
+    },
+  });
+
+  return {
+    meta: {
+      total,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPage: Math.ceil(total / limitNumber),
+    },
+    data,
+  };
+};
+const getPublicMeals = async (filters: any) => {
+  const {
+    name,
+    categoryId,
+    minPrice,
+    maxPrice,
+    page = "1",
+    limit = "10",
+  } = filters;
+
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const where: any = {
+    isAvailable: true,
+  };
+
+  if (name) {
+    where.name = {
+      contains: name,
+      mode: "insensitive",
+    };
+  }
+
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
+  if (minPrice || maxPrice) {
+    where.price = {};
+    if (minPrice) where.price.gte = Number(minPrice);
+    if (maxPrice) where.price.lte = Number(maxPrice);
+  }
+
+  const total = await prisma.meal.count({ where });
+  const data = await prisma.meal.findMany({
+    where,
+    skip,
+    take: limitNumber,
+    orderBy: { createdAt: "desc" },
+    include: {
+      provider: true,
+      reviews: true,
+    },
+  });
+
+  return {
+    meta: {
+      total,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPage: Math.ceil(total / limitNumber),
+    },
+    data,
+  };
+};
+const getMyMeals = async (userId: string, filters: any) => {
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const provider = await prisma.providerProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!provider) {
+    throw new Error("Provider not found");
+  }
+
+  // ✅ Pagination
+  const {
+    page = "1",
+    limit = "10",
+    name,
+    categoryId,
+    minPrice,
+    maxPrice,
+  } = filters;
+
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const where: any = {
+    providerId: provider.id,
+  };
+
+  // ✅ Optional filters (same as public)
+  if (name) {
+    where.name = {
+      contains: name,
+      mode: "insensitive",
+    };
+  }
+
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
+  if (minPrice || maxPrice) {
+    where.price = {};
+    if (minPrice) where.price.gte = Number(minPrice);
+    if (maxPrice) where.price.lte = Number(maxPrice);
+  }
+
+  const total = await prisma.meal.count({ where });
+
+  const data = await prisma.meal.findMany({
+    where,
+    skip,
+    take: limitNumber,
+    orderBy: { createdAt: "desc" },
+    include: {
+      reviews: true,
+      category: true,
+    },
+  });
+
   return {
     meta: {
       total,
@@ -89,22 +211,53 @@ const getMeals = async (
   };
 };
 
-// get single meal
+// get single meal with increment
 const getSingleMeal = async (mealId: string) => {
-  const result = await prisma.meal.findUnique({
+  const result = await prisma.meal.update({
     where: {
       id: mealId,
     },
+    data: {
+      views: {
+        increment: 1,
+      },
+    },
     include: {
       provider: true,
+      reviews: true,
+      category: true,
     },
   });
-  console.log({ mealId, result });
 
   return result;
+};
+const deleteMeal = async (mealId: string, user: any) => {
+  const meal = await prisma.meal.findUnique({
+    where: { id: mealId },
+  });
+
+  if (!meal) throw new Error("Meal not found");
+
+  // If provider → check ownership
+  if (user.role === "PROVIDER") {
+    const provider = await prisma.providerProfile.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (meal.providerId !== provider?.id) {
+      throw new Error("Forbidden");
+    }
+  }
+
+  return prisma.meal.delete({
+    where: { id: mealId },
+  });
 };
 export const MealService = {
   createMeal,
   getMeals,
   getSingleMeal,
+  getPublicMeals,
+  deleteMeal,
+  getMyMeals,
 };

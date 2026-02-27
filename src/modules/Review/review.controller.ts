@@ -1,13 +1,11 @@
-import { RequestHandler } from "express";
+import { NextFunction, RequestHandler } from "express";
 import sendResponse from "../../utils/sendResponse";
 import { ReviewService } from "./review.service";
-import { string } from "zod";
 
-// --- Create review ---
-const createReview: RequestHandler = async (req, res) => {
+ const createReview: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     const payload = req.body;
-    const customerId = req.user?.id; 
+    const customerId = req.user?.id;
     const result = await ReviewService.createReview({ ...payload, customerId });
 
     sendResponse(res, {
@@ -17,17 +15,16 @@ const createReview: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Review creation failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
 // --- Get all reviews for a meal ---
-const getReviewsByMeal: RequestHandler = async (req, res) => {
+const getReviewsByMeal: RequestHandler = async (
+  req,
+  res,
+  next: NextFunction
+) => {
   try {
     const { mealId } = req.params;
     const result = await ReviewService.getReviewsByMeal(mealId as string);
@@ -39,17 +36,16 @@ const getReviewsByMeal: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Fetching reviews failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
 // --- Get single review ---
-const getSingleReview: RequestHandler = async (req, res) => {
+const getSingleReview: RequestHandler = async (
+  req,
+  res,
+  next: NextFunction
+) => {
   try {
     const { id } = req.params;
     const result = await ReviewService.getSingleReview(id as string);
@@ -61,17 +57,12 @@ const getSingleReview: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 404,
-      success: false,
-      message: "Review not found",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
 // --- Update review ---
-const updateReview: RequestHandler = async (req, res) => {
+const updateReview: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     const { id } = req.params;
     const customerId = req.user?.id;
@@ -90,17 +81,12 @@ const updateReview: RequestHandler = async (req, res) => {
       data: result,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Review update failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 
 // --- Delete review ---
-const deleteReview: RequestHandler = async (req, res) => {
+const deleteReview: RequestHandler = async (req, res, next: NextFunction) => {
   try {
     const { id } = req.params;
     const customerId = req.user?.id;
@@ -114,12 +100,7 @@ const deleteReview: RequestHandler = async (req, res) => {
       data: null,
     });
   } catch (error: any) {
-    sendResponse(res, {
-      statusCode: 400,
-      success: false,
-      message: "Review deletion failed",
-      data: error.message,
-    });
+    next(error);
   }
 };
 

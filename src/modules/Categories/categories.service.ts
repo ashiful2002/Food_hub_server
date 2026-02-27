@@ -5,7 +5,18 @@ const createCategory = async (payload: { name: string }) => {
 
   let slug = baseSlug;
   let counter = 1;
+  const existingByName = await prisma.category.findFirst({
+    where: {
+      name: {
+        equals: payload.name,
+        mode: "insensitive",
+      },
+    },
+  });
 
+  if (existingByName) {
+    throw new Error("Category already exists");
+  }
   while (await prisma.category.findUnique({ where: { slug } })) {
     slug = `${baseSlug}-${counter++}`;
   }

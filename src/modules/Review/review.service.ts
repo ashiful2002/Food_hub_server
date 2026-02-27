@@ -1,16 +1,5 @@
 import { prisma } from "../../lib/prisma";
-
-export type CreateReviewDTO = {
-  mealId: string;
-  rating: number;
-  comment?: string;
-  customerId: string;
-};
-
-export type UpdateReviewDTO = {
-  rating?: number;
-  comment?: string;
-};
+import { CreateReviewDTO, UpdateReviewDTO } from "../../types";
 
 const createReview = async (payload: CreateReviewDTO) => {
   const { mealId, customerId, rating, comment } = payload;
@@ -27,7 +16,6 @@ const createReview = async (payload: CreateReviewDTO) => {
     data: { mealId, customerId, rating, comment },
   });
 
-  // 4️⃣ Update meal metadata (averageRating, totalReviews)
   const reviews = await prisma.review.findMany({ where: { mealId } });
   const totalReviews = reviews.length;
   const averageRating =
@@ -58,16 +46,47 @@ const getSingleReview = async (id: string) => {
   return review;
 };
 
-const updateReview = async (id: string, customerId: string, payload: UpdateReviewDTO) => {
-  // Ensure the review belongs to the customer
-  const review = await prisma.review.findUnique({ where: { id } });
-  if (!review) throw new Error("Review not found");
-  if (review.customerId !== customerId) throw new Error("Unauthorized");
+const updateReview = async (
+  id: string,
+  customerId: string,
+  payload: UpdateReviewDTO
+) => {
+  const review = await prisma.review.findUnique({
+    where: { id },
+  });
 
-  return await prisma.review.update({
+  if (!review) {
+    throw new Error("Review not found");
+  }
+
+  if (review.customerId !== customerId) {
+    throw new Error("Unauthorized");
+  }
+
+  if (payload.rating && (payload.rating < 1 || payload.rating > 5)) {
+    throw new Error("Rating must be between 1 and 5");
+  }
+
+  const updatedReview = await prisma.review.update({
     where: { id },
     data: payload,
   });
+
+  const stats = await prisma.review.aggregate({
+    where: { mealId: review.mealId },
+    _avg: { rating: true },
+    _count: true,
+  });
+
+  await prisma.meal.update({
+    where: { id: review.mealId },
+    data: {
+      totalReviews: stats._count,
+      averageRating: stats._avg.rating ?? 0,
+    },
+  });
+
+  return updatedReview;
 };
 
 const deleteReview = async (id: string, customerId: string) => {
@@ -75,10 +94,8 @@ const deleteReview = async (id: string, customerId: string) => {
   if (!review) throw new Error("Review not found");
   if (review.customerId !== customerId) throw new Error("Unauthorized");
 
-  // Delete review
   await prisma.review.delete({ where: { id } });
 
-  // Recalculate meal metadata
   const mealId = review.mealId;
   const reviews = await prisma.review.findMany({ where: { mealId } });
   const totalReviews = reviews.length;

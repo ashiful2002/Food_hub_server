@@ -1,9 +1,9 @@
-import express from "express";
+import { Router } from "express";
 import { OrderController } from "./order.controller";
 import auth from "../../middlewares/auth";
 import { UserRole } from "@prisma/client";
 
-const router = express.Router();
+const router = Router();
 
 router.post("/", auth(UserRole.CUSTOMER), OrderController.createOrder);
 router.get(
@@ -13,11 +13,9 @@ router.get(
 );
 router.get(
   "/:id",
-  auth(UserRole.CUSTOMER, UserRole.PROVIDER),
-  OrderController.getOrder
+  auth(UserRole.CUSTOMER, UserRole.PROVIDER, UserRole.ADMIN),
+  OrderController.getOrderById
 );
-
-// Provider routes (for status update)
 router.patch(
   "/status/:id",
   auth(UserRole.PROVIDER),

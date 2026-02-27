@@ -6,8 +6,16 @@ import { UserRole } from "@prisma/client";
 const router = express.Router();
 
 router.post("/", auth(UserRole.PROVIDER), MealController.createMeal);
-router.get("/", auth(UserRole.PROVIDER), MealController.getMeals);
-router.get("/:id", MealController.getSingleMeal);
+router.get("/", MealController.getPublicMeals);
+router.get("/my-meals", auth(UserRole.PROVIDER), MealController.getMyMeals);
 
-export const MealRoutes = router;
- 
+router.get("/:id", MealController.getSingleMeal);
+router.delete(
+  "/:id",
+  auth(UserRole.PROVIDER, UserRole.ADMIN),
+  MealController.deleteMeal
+);
+
+
+
+export const MealRoutes = router; 

@@ -1,4 +1,4 @@
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, UserRole } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 
 type OrderItemPayload = {
@@ -32,7 +32,9 @@ const createOrder = async (payload: CreateOrderPayload) => {
   const providerId = meals[0].providerId;
   for (const meal of meals) {
     if (meal.providerId !== providerId) {
-      throw new Error("All meals in one order must belong to the same provider");
+      throw new Error(
+        "All meals in one order must belong to the same provider"
+      );
     }
   }
 
@@ -57,8 +59,8 @@ const createOrder = async (payload: CreateOrderPayload) => {
           return {
             mealId: meal.id,
             quantity: item.quantity,
-            price: meal.price, 
-            name: meal.name,  
+            price: meal.price,
+            name: meal.name,
           };
         }),
       },
@@ -69,34 +71,127 @@ const createOrder = async (payload: CreateOrderPayload) => {
   return order;
 };
 
-const getOrdersByCustomer = async (customerId: string) => {
-  return await prisma.order.findMany({
-    where: { customerId },
-    include: { items: true },
-    orderBy: { orderedAt: "desc" },
+const getOrders = async (userId: string) => {
+  // Fetch user info
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
   });
+
+  if (!user) throw new Error("User not found");
+
+  let orders;
+
+  switch (user.role) {
+    case "CUSTOMER":
+      orders = await prisma.order.findMany({
+        where: { customerId: user.id },
+        include: { items: true, provider: true },
+        orderBy: { orderedAt: "desc" },
+      });
+      break;
+
+    case "PROVIDER":
+      // Get provider profile ID
+      const providerProfile = await prisma.providerProfile.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      if (!providerProfile) throw new Error("Provider profile not found");
+
+      orders = await prisma.order.findMany({
+        where: { providerId: providerProfile.id },
+        include: { items: { include: { meal: true } }, customer: true },
+        orderBy: { orderedAt: "desc" },
+      });
+      break;
+
+    case "ADMIN":
+      orders = await prisma.order.findMany({
+        include: { items: true, customer: true, provider: true },
+        orderBy: { orderedAt: "desc" },
+      });
+      break;
+
+    default:
+      throw new Error("Invalid user role");
+  }
+
+  return orders;
 };
 
-const getOrderById = async (orderId: string) => {
+const getOrderById = async (
+  orderId: string,
+  userId: string,
+  role: UserRole
+) => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: true },
+    include: {
+      items: true,
+      customer: true,
+      provider: true,
+    },
   });
-  if (!order) throw new Error("Order not found");
-  return order;
-};
 
-const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  // ADMIN can access everything
+  if (role === "ADMIN") {
+    return order;
+  }
+
+  // CUSTOMER can only access their own order
+  if (role === "CUSTOMER") {
+    if (order.customerId !== userId) {
+      throw new Error("You are not authorized to view this order");
+    }
+    return order;
+  }
+
+  // PROVIDER can only access their own provider orders
+  if (role === "PROVIDER") {
+    const providerProfile = await prisma.providerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!providerProfile) {
+      throw new Error("Provider profile not found");
+    }
+
+    if (order.providerId !== providerProfile.id) {
+      throw new Error("You are not authorized to view this order");
+    }
+
+    return order;
+  }
+
+  throw new Error("Invalid role");
+};
+const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+  if (order.status === "DELIVERED" || order.status === "CANCELLED") {
+    throw new Error("Cannot update a completed order");
+  }
+
   return await prisma.order.update({
     where: { id: orderId },
-    data: { status },
-    include: { items: true },
+    data: { status: newStatus },
   });
 };
 
 export const OrderService = {
   createOrder,
-  getOrdersByCustomer,
+  getOrders,
   getOrderById,
   updateOrderStatus,
-}; 
+};
