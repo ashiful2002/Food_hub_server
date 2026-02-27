@@ -8,15 +8,17 @@ import { errorHandler } from "./middlewares/globalErrorHandler";
 const app: Application = express();
 
 app.use(express.json());
-app.use(cors({
-  origin: "http://localhost:3000",
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 
 app.use("/api/v1", router);
- 
+
 app.get("/", (req: Request, res: Response) => {
-  res.send("Meal server is running...");
+  res.send("https://food-hub-sigma-fawn.vercel.app/");
 });
 
 app.use(notFound);
