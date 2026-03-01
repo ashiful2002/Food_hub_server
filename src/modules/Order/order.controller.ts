@@ -58,9 +58,12 @@ const getOrderById: RequestHandler = async (req, res, next: NextFunction) => {
 
 // Update order status (PROVIDER role)
 const updateStatus: RequestHandler = async (req, res, next) => {
+  const { id } = req.params;
+  console.log(id, req.body);
+
   try {
     const order = await OrderService.updateOrderStatus(
-      req.params.id as string,
+      id as string,
       req.body.status
     );
 

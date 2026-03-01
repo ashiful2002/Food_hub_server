@@ -13,13 +13,13 @@ const routerManager = [
   { path: "/auth", route: AuthRoutes },
 
   { path: "/meals", route: MealRoutes },
+  // have trouble to create provider
   { path: "/providers", route: ProviderRoutes },
+  //DONE
   { path: "/categories", route: CategoryRoutes },
 
   { path: "/orders", route: OrderRoutes },
   { path: "/reviews", route: ReviewRoutes },
-
-  // { path: "/providers", route: ProviderRoutes },
 
   // Admin private
   // { path: "/admin", route: AdminRoutes },

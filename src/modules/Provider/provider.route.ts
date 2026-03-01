@@ -5,11 +5,11 @@ import { ProviderController } from "./provider.controller";
 
 const router = express.Router();
 
-router.post(
-  "/",
-  auth(UserRole.PROVIDER),
-  ProviderController.createProviderProfile
-);
+// router.post(
+//   "/",
+//   auth(UserRole.PROVIDER, UserRole.ADMIN),
+//   ProviderController.createProviderProfile
+// );
 router.get("/", ProviderController.getAllProviders);
 router.get(
   "/me",

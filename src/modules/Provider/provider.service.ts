@@ -1,18 +1,19 @@
 import { prisma } from "../../lib/prisma";
 
-const createProviderProfile = async (payload: any, userId: string) => {
+const createProviderProfile = async (payload: any) => {
+  const { id } = payload;
   const existing = await prisma.providerProfile.findUnique({
-    where: { userId },
+    where: { id },
   });
 
   if (existing) {
-    throw new Error("Profile already exists");
+    throw new Error("Provider Profile already exists");
   }
 
   const result = await prisma.providerProfile.create({
     data: {
       ...payload,
-      userId,
+      // userId,
     },
   });
 
@@ -61,14 +62,14 @@ const getSingleProvider = async (id: string) => {
       id: id,
     },
     include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          avatar: true,
-        },
-      },
+      // user: {
+      //   select: {
+      //     id: true,
+      //     name: true,
+      //     email: true,
+      //     avatar: true,
+      //   },
+      // },
       meals: {
         select: {
           id: true,
@@ -86,9 +87,9 @@ const getSingleProvider = async (id: string) => {
 
   return provider;
 };
-const getMyProviderProfile = async (userId: string) => {
+const getMyProviderProfile = async (id: string) => {
   const provider = await prisma.providerProfile.findUnique({
-    where: { userId },
+    where: { userId: id },
     include: {
       meals: true,
     },

@@ -70,8 +70,13 @@ const createOrder = async (payload: CreateOrderPayload) => {
 
   return order;
 };
+const getOrders = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
 
-const getOrders = async (userId: string) => {
   // Fetch user info
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -80,44 +85,65 @@ const getOrders = async (userId: string) => {
 
   if (!user) throw new Error("User not found");
 
-  let orders;
+  let whereCondition: any = {};
+  let includeCondition: any = {};
 
   switch (user.role) {
     case "CUSTOMER":
-      orders = await prisma.order.findMany({
-        where: { customerId: user.id },
-        include: { items: true, provider: true },
-        orderBy: { orderedAt: "desc" },
-      });
+      whereCondition = { customerId: user.id };
+      includeCondition = { items: true, provider: true };
       break;
 
     case "PROVIDER":
-      // Get provider profile ID
       const providerProfile = await prisma.providerProfile.findUnique({
         where: { userId: user.id },
         select: { id: true },
       });
+
       if (!providerProfile) throw new Error("Provider profile not found");
 
-      orders = await prisma.order.findMany({
-        where: { providerId: providerProfile.id },
-        include: { items: { include: { meal: true } }, customer: true },
-        orderBy: { orderedAt: "desc" },
-      });
+      whereCondition = { providerId: providerProfile.id };
+      includeCondition = {
+        items: { include: { meal: true } },
+        customer: true,
+      };
       break;
 
     case "ADMIN":
-      orders = await prisma.order.findMany({
-        include: { items: true, customer: true, provider: true },
-        orderBy: { orderedAt: "desc" },
-      });
+      includeCondition = {
+        items: true,
+        customer: true,
+        provider: true,
+      };
       break;
 
     default:
       throw new Error("Invalid user role");
   }
 
-  return orders;
+  // Run both queries in parallel (better performance)
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where: whereCondition,
+      include: includeCondition,
+      orderBy: { orderedAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.order.count({
+      where: whereCondition,
+    }),
+  ]);
+
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: orders,
+  };
 };
 
 const getOrderById = async (
@@ -172,15 +198,9 @@ const getOrderById = async (
   throw new Error("Invalid role");
 };
 const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-  });
-
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) {
     throw new Error("Order not found");
-  }
-  if (order.status === "DELIVERED" || order.status === "CANCELLED") {
-    throw new Error("Cannot update a completed order");
   }
 
   return await prisma.order.update({

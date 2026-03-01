@@ -7,15 +7,16 @@ const createProviderProfile: RequestHandler = async (
   next: NextFunction
 ) => {
   try {
-    const userId = req.user?.id;
+    // const userId = req.user?.id;
 
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+    // if (!userId) {
+    //   throw new Error("Unauthorized");
+    // }
+    console.log(req.body);
 
     const result = await providerService.createProviderProfile(
-      req.body,
-      userId
+      req.body
+      // userId
     );
     sendResponse(res, {
       statusCode: 201,
@@ -45,16 +46,21 @@ const getAllProviders: RequestHandler = async (
     next(error);
   }
 };
-const getMyProviderProfile: RequestHandler = async (req, res) => {
+const getMyProviderProfile: RequestHandler = async (
+  req,
+  res,
+  next: NextFunction
+) => {
   try {
-    const userId = req.user!.id;
+    const id = req.user?.id;
+    console.log({ "logged in user id:": id });
 
-    const result = await providerService.getMyProviderProfile(userId);
+    const result = await providerService.getMyProviderProfile(id);
 
     sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "get all Providers successfully",
+      message: "get my Provider profile successfully",
       data: result,
     });
   } catch (error: any) {
@@ -73,7 +79,6 @@ const getSingleProvider: RequestHandler = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
-  console.log(id);
 
   try {
     const result = await providerService.getSingleProvider(id as string);
@@ -81,7 +86,7 @@ const getSingleProvider: RequestHandler = async (
     sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "Provider profile fetched successfully",
+      message: "single Provide fetched successfully",
       data: result,
     });
   } catch (error: any) {
@@ -95,4 +100,3 @@ export const ProviderController = {
   getMyProviderProfile,
   getSingleProvider,
 };
- 
