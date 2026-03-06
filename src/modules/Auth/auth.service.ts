@@ -52,10 +52,10 @@ const loginUser = async (payload: any) => {
   };
 };
 
-const getMe = async (userId: string) => {
+const getMe = async (id: string) => {
   const user = await prisma.user.findUnique({
     where: {
-      id: userId,
+      id: id,
     },
   });
 

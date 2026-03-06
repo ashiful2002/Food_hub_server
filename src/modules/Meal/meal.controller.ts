@@ -2,24 +2,7 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import sendResponse from "../../utils/sendResponse";
 import { MealService } from "./meal.service";
 
-const createMeal: RequestHandler = async (req, res, next: NextFunction) => {
-  try {
-    if (!req.user?.id) {
-      throw new Error("Unauthorized");
-    }
 
-    const result = await MealService.createMeal(req.body, req.user.id);
-
-    sendResponse(res, {
-      statusCode: 201,
-      success: true,
-      message: "Meal created successfully",
-      data: result,
-    });
-  } catch (error: any) {
-    next(error);
-  }
-};
 
 const getPublicMeals: RequestHandler = async (req, res, next: NextFunction) => {
   try {
@@ -72,31 +55,12 @@ const getSingleMeal: RequestHandler = async (req, res, next: NextFunction) => {
   }
 };
 
-const deleteMeal: RequestHandler = async (req, res, next: NextFunction) => {
-  try {
-    const { id } = req.params;
 
-    if (!req.user) {
-      throw new Error("Unauthorized");
-    }
-
-    const result = await MealService.deleteMeal(id as string, req.user);
-
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: "Meal deleted successfully",
-      data: result,
-    });
-  } catch (error: any) {
-    next(error);
-  }
-};
 
 export const MealController = {
-  createMeal,
+  // createMeal,
   getPublicMeals,
   getMyMeals,
   getSingleMeal,
-  deleteMeal,
+  // deleteMeal,
 };

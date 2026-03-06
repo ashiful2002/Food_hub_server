@@ -16,7 +16,25 @@ router.get(
   auth(UserRole.PROVIDER),
   ProviderController.getMyProviderProfile
 );
+router.post("/meals", auth(UserRole.PROVIDER), ProviderController.createMeal);
 
 router.get("/:id", ProviderController.getSingleProvider);
+
+router.patch(
+  "/meals/:id",
+  auth(UserRole.PROVIDER),
+  ProviderController.updateMeal
+);
+router.patch(
+  "/orders/:id",
+  auth(UserRole.PROVIDER),
+  ProviderController.updateStatus
+);
+
+router.delete(
+  "/meals/:id",
+  auth(UserRole.PROVIDER, UserRole.ADMIN),
+  ProviderController.deleteMeal
+);
 
 export const ProviderRoutes = router;

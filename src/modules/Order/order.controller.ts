@@ -56,31 +56,11 @@ const getOrderById: RequestHandler = async (req, res, next: NextFunction) => {
   }
 };
 
-// Update order status (PROVIDER role)
-const updateStatus: RequestHandler = async (req, res, next) => {
-  const { id } = req.params;
-  console.log(id, req.body);
 
-  try {
-    const order = await OrderService.updateOrderStatus(
-      id as string,
-      req.body.status
-    );
-
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: "Order status updated successfully",
-      data: order,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 export const OrderController = {
   createOrder,
   getOrders,
   getOrderById,
-  updateStatus,
+  // updateStatus,
 };

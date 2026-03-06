@@ -77,61 +77,16 @@ const getOrders = async (
 ) => {
   const skip = (page - 1) * limit;
 
-  // Fetch user info
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true },
-  });
-
-  if (!user) throw new Error("User not found");
-
-  let whereCondition: any = {};
-  let includeCondition: any = {};
-
-  switch (user.role) {
-    case "CUSTOMER":
-      whereCondition = { customerId: user.id };
-      includeCondition = { items: true, provider: true };
-      break;
-
-    case "PROVIDER":
-      const providerProfile = await prisma.providerProfile.findUnique({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-
-      if (!providerProfile) throw new Error("Provider profile not found");
-
-      whereCondition = { providerId: providerProfile.id };
-      includeCondition = {
-        items: { include: { meal: true } },
-        customer: true,
-      };
-      break;
-
-    case "ADMIN":
-      includeCondition = {
-        items: true,
-        customer: true,
-        provider: true,
-      };
-      break;
-
-    default:
-      throw new Error("Invalid user role");
-  }
-
-  // Run both queries in parallel (better performance)
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
-      where: whereCondition,
-      include: includeCondition,
+      where: { customerId: userId },
+    
       orderBy: { orderedAt: "desc" },
       skip,
       take: limit,
     }),
     prisma.order.count({
-      where: whereCondition,
+      where: { customerId: userId },
     }),
   ]);
 
@@ -197,21 +152,10 @@ const getOrderById = async (
 
   throw new Error("Invalid role");
 };
-const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
-  if (!order) {
-    throw new Error("Order not found");
-  }
-
-  return await prisma.order.update({
-    where: { id: orderId },
-    data: { status: newStatus },
-  });
-};
 
 export const OrderService = {
   createOrder,
   getOrders,
   getOrderById,
-  updateOrderStatus,
+  // updateOrderStatus,
 };

@@ -14,7 +14,7 @@ const routerManager = [
 
   { path: "/meals", route: MealRoutes },
   // have trouble to create provider
-  { path: "/providers", route: ProviderRoutes },
+  { path: "/provider", route: ProviderRoutes },
   //DONE
   { path: "/categories", route: CategoryRoutes },
 

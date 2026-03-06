@@ -1,19 +1,6 @@
 import { prisma } from "../../lib/prisma";
 
-const createMeal = async (payload: any, userId: string) => {
-  const provider = await prisma.providerProfile.findUnique({
-    where: {
-      userId: userId,
-    },
-  });
-  if (!provider) {
-    throw new Error("Provider profile not found");
-  }
-  const result = await prisma.meal.create({
-    data: { ...payload, providerId: provider.id },
-  });
-  return result;
-};
+
 // get all meals
 const getMeals = async (userId: string, filters: any) => {
   const {
@@ -231,33 +218,12 @@ const getSingleMeal = async (mealId: string) => {
 
   return result;
 };
-const deleteMeal = async (mealId: string, user: any) => {
-  const meal = await prisma.meal.findUnique({
-    where: { id: mealId },
-  });
 
-  if (!meal) throw new Error("Meal not found");
-
-  // If provider → check ownership
-  if (user.role === "PROVIDER") {
-    const provider = await prisma.providerProfile.findUnique({
-      where: { userId: user.id },
-    });
-
-    if (meal.providerId !== provider?.id) {
-      throw new Error("Forbidden");
-    }
-  }
-
-  return prisma.meal.delete({
-    where: { id: mealId },
-  });
-};
 export const MealService = {
-  createMeal,
+  // createMeal,
   getMeals,
   getSingleMeal,
   getPublicMeals,
-  deleteMeal,
+  // deleteMeal,
   getMyMeals,
 };

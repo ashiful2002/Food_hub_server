@@ -1,6 +1,7 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import sendResponse from "../../utils/sendResponse";
 import { providerService } from "./provider.service";
+import { createECDH } from "node:crypto";
 const createProviderProfile: RequestHandler = async (
   req,
   res,
@@ -93,10 +94,97 @@ const getSingleProvider: RequestHandler = async (
     next(error);
   }
 };
+const createMeal: RequestHandler = async (req, res, next: NextFunction) => {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Unauthorized");
+    }
 
+    const result = await providerService.createMeal(req.body, req.user.id);
+
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: "Meal created successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+const updateMeal: RequestHandler = async (req, res, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const payload = req.body;
+    if (!req.user) {
+      throw new Error("Unauthorized");
+    }
+
+    const result = await providerService.updateMeal(
+      id as string,
+      payload,
+      req.user
+    );
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Meal deleted successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+const deleteMeal: RequestHandler = async (req, res, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.user) {
+      throw new Error("Unauthorized");
+    }
+
+    const result = await providerService.deleteMeal(id as string, req.user);
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Meal deleted successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+// Update order status (PROVIDER role)
+const updateStatus: RequestHandler = async (req, res, next) => {
+  const { id } = req.params;
+  console.log(id, req.body);
+
+  try {
+    const order = await providerService.updateOrderStatus(
+      id as string,
+      req.body.status
+    );
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Order status updated successfully",
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const ProviderController = {
+  createMeal,
   createProviderProfile,
   getAllProviders,
   getMyProviderProfile,
   getSingleProvider,
+  deleteMeal,
+  updateMeal,
+  updateStatus,
 };
